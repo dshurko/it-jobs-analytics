@@ -10,7 +10,7 @@ executor_config: {}
 executor_count: 1
 executor_type: null
 extensions: {}
-name: djinni_to_cloud_storage
+name: djinni_to_google_cloud_storage
 notification_config: {}
 remote_variables_dir: null
 retry_config: {}
@@ -20,6 +20,6 @@ settings:
 spark_config: {}
 tags: []
 type: python
-uuid: djinni_to_cloud_storage
+uuid: djinni_to_google_cloud_storage
 variables_dir: /home/src/mage_data/it_jobs_analytics
 widgets: []
