@@ -5,6 +5,8 @@ import requests
 
 
 class DjinniParser(BaseParser):
+    BASE_URL = "https://djinni.co/jobs/"
+    SET_LANG_URL = "https://djinni.co/set_lang?code=en&next=/"
     CATEGORY_MAP = {
         "ai/ml": "ML+AI",
         "data engineering": "Data+Engineer",
@@ -16,11 +18,10 @@ class DjinniParser(BaseParser):
     }
 
     def __get_job_list_from_page(self, category, page=1):
-        base_url = "https://djinni.co/jobs/"
-        category_url = f"{base_url}?primary_keyword={self.CATEGORY_MAP[category]}&region=UKR&page={page}"
+        category_url = f"{self.BASE_URL}?primary_keyword={self.CATEGORY_MAP[category]}&region=UKR&page={page}"
 
         response = requests.get(category_url)
-        if response.url == base_url:
+        if response.url == self.BASE_URL:
             return []
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -74,4 +75,19 @@ class DjinniParser(BaseParser):
         return job_list
 
     def get_job_description(self, url):
-        pass
+        with requests.Session() as session:
+            # set language to English
+            session.get(self.SET_LANG_URL)
+
+            response = session.get(url)
+            soup = BeautifulSoup(response.text, "html.parser")
+
+            description_div_tags = soup.find_all("div", class_="mb-4")[:2]
+            for div in description_div_tags:
+                for br in div.find_all("br"):
+                    br.replace_with("\n")
+
+            description = "\n\n".join(
+                [div.text.strip() for div in description_div_tags]
+            )
+            return description
