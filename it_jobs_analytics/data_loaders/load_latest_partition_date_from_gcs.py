@@ -21,6 +21,7 @@ def load_from_google_cloud_storage(*args, **kwargs):
     client = GoogleCloudStorage.with_config(
         ConfigFileLoader(config_path, config_profile)
     ).client
+
     bucket = client.get_bucket(bucket_name)
     blobs = bucket.list_blobs(prefix=job_website_name)
 
