@@ -13,3 +13,6 @@ mage-ai.db
 mage_data/
 secrets/
 .env
+.venv
+env/
+venv/
