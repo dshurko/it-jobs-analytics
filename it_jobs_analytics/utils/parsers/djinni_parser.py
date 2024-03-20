@@ -99,7 +99,6 @@ class DjinniParser(BaseParser):
             List[Dict]: A list of dictionaries representing job listings.
         """
         job_list = []
-
         page = 1
         while True:
             job_list_from_page = self._get_job_list_from_page(category, page)
