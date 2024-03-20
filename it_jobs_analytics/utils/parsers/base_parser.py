@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from concurrent import futures
-from typing import List, Dict
 from datetime import date
+from typing import Dict, List
 
 
 class BaseParser(ABC):

@@ -1,9 +1,10 @@
 import re
-from base_parser import BaseParser
-from datetime import datetime, date
-from bs4 import BeautifulSoup
+from datetime import date, datetime
+from typing import Dict, List
+
 import requests
-from typing import List, Dict
+from base_parser import BaseParser
+from bs4 import BeautifulSoup
 
 
 class DjinniParser(BaseParser):
