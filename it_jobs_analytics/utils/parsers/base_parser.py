@@ -8,79 +8,76 @@ class BaseParser(ABC):
     """
     Base class for job parsers.
 
-    This class defines the common interface and behavior for job parsers.
-    Subclasses should implement the abstract methods to provide specific
-    parsing logic for different job sources.
+    This class defines the common interface and functionality for job parsers.
+    Subclasses should implement the abstract methods to provide specific parsing logic.
 
     Attributes:
-        CATEGORY_MAP (dict): A mapping of job categories to their respective keywords.
-        MAX_RETRIES (int): The maximum number of retries when fetching job descriptions.
-
+        CATEGORY_URL_MAP (dict): A mapping of job categories to their corresponding URLs.
+        MAX_RETRIES (int): The maximum number of retries for fetching job descriptions.
     """
 
-    CATEGORY_MAP = {}
+    CATEGORY_URL_MAP = {}
     MAX_RETRIES = 3
 
     @abstractmethod
-    def get_job_list(
+    def get_jobs_by_category(
         self, category: str, start_date: date, end_date: date
     ) -> List[Dict]:
         """
-        Get a list of job postings for a specific category and date range.
+        Get a list of jobs for a specific category within a given date range.
 
         Args:
-            category (str): The job category.
-            start_date (date): The start date of the job postings.
-            end_date (date): The end date of the job postings.
+            category (str): The category of jobs to retrieve.
+            start_date (date): The start date of the job posting.
+            end_date (date): The end date of the job posting.
 
         Returns:
-            List[Dict]: A list of job postings, where each posting is represented as a dictionary.
-
+            List[Dict]: A list of job dictionaries, where each dictionary represents a job.
         """
         pass
 
     @abstractmethod
     def get_job_description(self, url: str) -> str:
         """
-        Get the description of a job posting.
+        Get the description of a job given its URL.
 
         Args:
-            url (str): The URL of the job posting.
+            url (str): The URL of the job.
 
         Returns:
-            str: The description of the job posting.
-
+            str: The description of the job.
         """
         pass
 
-    def get_jobs(self, start_date: date, end_date: date) -> List[Dict]:
+    def get_all_jobs(self, start_date: date, end_date: date) -> List[Dict]:
         """
-        Get a list of job postings for the specified date range.
+        Get all jobs within a given date range.
 
-        This method retrieves the job list for each category defined in the
-        CATEGORY_MAP attribute, and then fetches the job description for each
-        job in parallel using a ThreadPoolExecutor.
+        This method retrieves jobs for all categories defined in the `CATEGORY_URL_MAP`
+        attribute. It uses multithreading to fetch job descriptions concurrently.
 
         Args:
-            start_date (date): The start date of the job postings.
-            end_date (date): The end date of the job postings.
+            start_date (date): The start date of the job posting.
+            end_date (date): The end date of the job posting.
 
         Returns:
-            List[Dict]: A list of job postings, where each posting is represented as a dictionary.
-
+            List[Dict]: A list of job dictionaries, where each dictionary represents a job.
         """
         jobs = []
-        for category in self.CATEGORY_MAP.keys():
-            jobs.extend(self.get_job_list(category, start_date, end_date))
+
+        for category in self.CATEGORY_URL_MAP.keys():
+            jobs.extend(self.get_jobs_by_category(category, start_date, end_date))
 
         with futures.ThreadPoolExecutor() as executor:
             future_to_job = {
                 executor.submit(self.get_job_description, job["url"]): job
                 for job in jobs
             }
+
             for future in futures.as_completed(future_to_job):
                 job = future_to_job[future]
                 retries = self.MAX_RETRIES
+
                 while retries > 0:
                     try:
                         job["description"] = future.result()
@@ -89,7 +86,7 @@ class BaseParser(ABC):
                         print(
                             f"An exception occurred while fetching job description: {e}"
                         )
-                        retries -= 1  # decrement the retry counter
+                        retries -= 1
                         if retries > 0:
                             print(
                                 f"Retrying... ({self.MAX_RETRIES - retries} attempts left)"
@@ -101,4 +98,5 @@ class BaseParser(ABC):
                             jobs.remove(
                                 job
                             )  # remove job if description couldn't be fetched
+
         return jobs

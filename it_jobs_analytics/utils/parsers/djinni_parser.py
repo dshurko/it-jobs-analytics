@@ -9,33 +9,40 @@ from bs4 import BeautifulSoup
 
 class DjinniParser(BaseParser):
     """
-    A parser for extracting job listings and descriptions from Djinni.
+    A parser for scraping job listings from Djinni.
+
+    Attributes:
+        CATEGORY_URL_MAP (dict): A mapping of job categories to their corresponding URLs.
+        JOBS_URL (str): The base URL for job listings.
+        SET_LANG_URL (str): The URL for setting the language to English.
     """
 
+    CATEGORY_URL_MAP = {
+        "Data Engineer": "Data+Engineer",
+        "Data Science": "Data+Science",
+        "DevOps": "DevOps",
+        "Java": "Java",
+        "JavaScript / Front-End": "JavaScript",
+        "Node.js": "Node.js",
+        "Python": "Python",
+        "Rust": "Rust",
+        "Scala": "Scala",
+    }
     JOBS_URL = "https://djinni.co/jobs/"
     SET_LANG_URL = "https://djinni.co/set_lang?code=en&next=/"
-    CATEGORY_MAP = {
-        "ai/ml": "ML+AI",
-        "data engineering": "Data+Engineer",
-        "data science": "Data+Science",
-        "java": "Java",
-        "node.js": "Node.js",
-        "python": "Python",
-        "scala": "Scala",
-    }
 
-    def _get_job_list_from_page(self, category: str, page: int = 1) -> List[Dict]:
+    def __get_jobs_from_page(self, category: str, page: int = 1) -> List[Dict]:
         """
-        Get a list of job listings from a specific category and page.
+        Get job listings from a specific category and page.
 
         Args:
             category (str): The category of jobs to retrieve.
-            page (int, optional): The page number to retrieve. Defaults to 1.
+            page (int, optional): The page number of job listings. Defaults to 1.
 
         Returns:
-            List[Dict]: A list of dictionaries representing job listings.
+            List[Dict]: A list of job listings as dictionaries.
         """
-        category_url = f"{self.JOBS_URL}?primary_keyword={self.CATEGORY_MAP[category]}&region=UKR&page={page}"
+        category_url = f"{self.JOBS_URL}?primary_keyword={self.CATEGORY_URL_MAP[category]}&page={page}"
 
         try:
             response = requests.get(category_url)
@@ -50,77 +57,78 @@ class DjinniParser(BaseParser):
         soup = BeautifulSoup(response.text, "html.parser")
         li_tags = soup.find_all("li", class_="list-jobs__item job-list__item")
 
-        job_list = []
+        jobs = []
+
         for li in li_tags:
             header = li.find("header")
             company = header.find("a", class_="mr-2").text.strip()
-            dt = li.find("span", class_="mr-2 nobr")["title"]
-            published_at = datetime.strptime(dt, "%H:%M %d.%m.%Y").date()
-            title_a_tag = li.find("a", class_="h3 job-list-item__link")
-            title = title_a_tag.text.strip()
-            url = self.JOBS_URL + title_a_tag["href"].lstrip("/jobs")
+            dt_str = li.find("span", class_="mr-2 nobr")["title"]
+            published_at = datetime.strptime(dt_str, "%H:%M %d.%m.%Y").date()
+            a_tag = li.find("a", class_="h3 job-list-item__link")
+            title = a_tag.text.strip()
+            url = self.JOBS_URL + a_tag["href"].lstrip("/jobs")
 
-            job_list.append(
+            jobs.append(
                 {
                     "category": category,
-                    "title": title,
                     "company": company,
                     "published_at": published_at,
+                    "source": "djinni",
+                    "title": title,
                     "url": url,
                 }
             )
 
-        return job_list
+        return jobs
 
-    def _get_earliest_date(self, job_list: List[Dict]) -> date:
+    def __get_earliest_date(self, jobs: List[Dict]) -> date:
         """
         Get the earliest published date from a list of job listings.
 
         Args:
-            job_list (List[Dict]): A list of dictionaries representing job listings.
+            jobs (List[Dict]): A list of job listings.
 
         Returns:
             date: The earliest published date.
         """
-        return min(job["published_at"] for job in job_list)
+        return min(job["published_at"] for job in jobs)
 
-    def get_job_list(
+    def get_jobs_by_category(
         self, category: str, start_date: date, end_date: date
     ) -> List[Dict]:
         """
-        Get a list of job listings within a specified date range.
+        Get job listings by category and within a specified date range.
 
         Args:
             category (str): The category of jobs to retrieve.
-            start_date (date): The start date of the range.
-            end_date (date): The end date of the range.
+            start_date (date): The start date of the date range.
+            end_date (date): The end date of the date range.
 
         Returns:
-            List[Dict]: A list of dictionaries representing job listings.
+            List[Dict]: A list of job listings as dictionaries.
         """
-        job_list = []
+        jobs = []
         page = 1
+
         while True:
-            job_list_from_page = self._get_job_list_from_page(category, page)
+            jobs_from_page = self.__get_jobs_from_page(category, page)
             if (
-                not job_list_from_page
-                or self._get_earliest_date(job_list_from_page) < start_date
+                not jobs_from_page
+                or self.__get_earliest_date(jobs_from_page) < start_date
             ):
-                for job in job_list_from_page:
-                    if (
-                        job["published_at"] >= start_date
-                        and job["published_at"] <= end_date
-                    ):
-                        job_list.append(job)
+                for job in jobs_from_page:
+                    if start_date <= job["published_at"] <= end_date:
+                        jobs.append(job)
                 break
-            job_list.extend(job_list_from_page)
+
+            jobs.extend(jobs_from_page)
             page += 1
 
-        return job_list
+        return jobs
 
     def get_job_description(self, url: str) -> str:
         """
-        Get the description of a job listing from its URL.
+        Get the description of a job listing.
 
         Args:
             url (str): The URL of the job listing.
@@ -128,26 +136,27 @@ class DjinniParser(BaseParser):
         Returns:
             str: The description of the job listing.
         """
-        with requests.Session() as session:
-            # set language to English
-            session.get(self.SET_LANG_URL)
+        try:
+            with requests.Session() as session:
+                # set language to English
+                session.get(self.SET_LANG_URL)
 
-            try:
                 response = session.get(url)
                 response.raise_for_status()
-            except requests.RequestException as e:
-                print(f"Request failed: {e}")
-                return ""
 
-            soup = BeautifulSoup(response.text, "html.parser")
+                soup = BeautifulSoup(response.text, "html.parser")
+                div_tags = soup.find_all("div", class_="mb-4")[:2]
 
-            description_div_tags = soup.find_all("div", class_="mb-4")[:2]
-            for div in description_div_tags:
-                for br in div.find_all("br"):
-                    br.replace_with("\n")
+                for div in div_tags:
+                    for br in div.find_all("br"):
+                        br.replace_with("\n")
 
-            description = "\n".join([div.text.strip() for div in description_div_tags])
-            description = re.sub(r"[ \t]+", " ", description)
-            description = re.sub(r"( *\n *)+", "\n", description)
+                description = "\n".join([div.text.strip() for div in div_tags])
+                description = re.sub(r"[ \t]+", " ", description)
+                description = re.sub(r"( *\n *)+", "\n", description)
 
-            return description
+                return description
+
+        except requests.RequestException as e:
+            print(f"Request failed: {e}")
+            return ""
