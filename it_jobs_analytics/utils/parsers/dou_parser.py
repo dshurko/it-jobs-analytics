@@ -19,18 +19,29 @@ class DouParser(BaseParser):
     """
 
     CATEGORY_URL_MAP = {
+        ".NET": ".NET",
         "AI/ML": "AI/ML",
+        "Android": "Android",
+        "Architect": "Architect",
         "Big Data": "Big Data",
         "Blockchain": "Blockchain",
+        "C++": "C%2B%2B",
         "Data Engineer": "Data Engineer",
         "Data Science": "Data Science",
         "DevOps": "DevOps",
+        "Embedded": "Embedded",
+        "Flutter": "Flutter",
         "Front End": "Front End",
+        "Golang": "Golang",
         "Java": "Java",
         "Node.js": "Node.js",
+        "PHP": "PHP",
         "Python": "Python",
+        "React Native": "React Native",
+        "Ruby": "Ruby",
         "Rust": "Rust",
         "Scala": "Scala",
+        "iOS/macOS": "iOS/macOS",
     }
     JOBS_URL = "https://jobs.dou.ua/vacancies/"
     SET_LANG_URL = "https://dou.ua/?switch_lang=en"

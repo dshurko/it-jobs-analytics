@@ -18,15 +18,26 @@ class DjinniParser(BaseParser):
     """
 
     CATEGORY_URL_MAP = {
+        "Android": "Android",
+        "C / C++ / Embedded": "C%2B%2B",
+        "C# / .NET": ".NET",
         "Data Engineer": "Data+Engineer",
         "Data Science": "Data+Science",
         "DevOps": "DevOps",
+        "Flutter": "Flutter",
+        "Fullstack": "Fullstack",
+        "Golang": "Golang",
         "Java": "Java",
         "JavaScript / Front-End": "JavaScript",
         "Node.js": "Node.js",
+        "PHP": "PHP",
         "Python": "Python",
+        "React Native": "React+Native",
+        "Ruby": "Ruby",
         "Rust": "Rust",
         "Scala": "Scala",
+        "Software Architect": "Architect",
+        "iOS": "iOS",
     }
     JOBS_URL = "https://djinni.co/jobs/"
     SET_LANG_URL = "https://djinni.co/set_lang?code=en&next=/"
