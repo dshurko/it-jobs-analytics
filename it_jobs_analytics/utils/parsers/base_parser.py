@@ -1,23 +1,44 @@
+import re
 from abc import ABC, abstractmethod
 from concurrent import futures
 from datetime import date
 from typing import Dict, List
+
+import html2text
 
 
 class BaseParser(ABC):
     """
     Base class for job parsers.
 
-    This class defines the common interface and functionality for job parsers.
-    Subclasses should implement the abstract methods to provide specific parsing logic.
+    This class defines the common interface and utility methods for parsing job listings
+    from different sources.
 
     Attributes:
         CATEGORY_URL_MAP (dict): A mapping of job categories to their corresponding URLs.
-        MAX_RETRIES (int): The maximum number of retries for fetching job descriptions.
+        MAX_RETRIES (int): The maximum number of retries when fetching job descriptions.
+        SPACE_RE (re.Pattern): Regular expression pattern for matching consecutive spaces or tabs.
+        LEADING_SPACE_RE (re.Pattern): Regular expression pattern for matching leading spaces at the beginning of a line.
+        LEADING_HASH_GT_RE (re.Pattern): Regular expression pattern for matching leading hash or greater-than symbols at the beginning of a line.
+        BACKSLASH_DASH_RE (re.Pattern): Regular expression pattern for matching backslash followed by a dash.
+        BACKSLASH_PLUS_RE (re.Pattern): Regular expression pattern for matching backslash followed by a plus.
+        DASHES_UNDERSCORES_RE (re.Pattern): Regular expression pattern for matching consecutive dashes or underscores.
+        SINGLE_NON_SPACE_RE (re.Pattern): Regular expression pattern for matching lines with a single non-space character.
+        NEWLINE_SPACE_RE (re.Pattern): Regular expression pattern for matching newlines followed by spaces.
+        ORDERED_LIST_RE (re.Pattern): Regular expression pattern for matching ordered list items.
     """
 
     CATEGORY_URL_MAP = {}
     MAX_RETRIES = 3
+    SPACE_RE = re.compile(r"[ \t]+")
+    LEADING_SPACE_RE = re.compile(r"^ ", re.MULTILINE)
+    LEADING_HASH_GT_RE = re.compile(r"^[#>]+ ", re.MULTILINE)
+    BACKSLASH_DASH_RE = re.compile(r"\\-", re.MULTILINE)
+    BACKSLASH_PLUS_RE = re.compile(r"\\\+", re.MULTILINE)
+    DASHES_UNDERSCORES_RE = re.compile(r"[-_]{2,}")
+    SINGLE_NON_SPACE_RE = re.compile(r"^\S\s*$", re.MULTILINE)
+    NEWLINE_SPACE_RE = re.compile("\n\s+")
+    ORDERED_LIST_RE = re.compile(r"(\d)\\\.")
 
     @abstractmethod
     def get_jobs_by_category(
@@ -35,6 +56,37 @@ class BaseParser(ABC):
             List[Dict]: A list of job dictionaries, where each dictionary represents a job.
         """
         pass
+
+    def convert_html_to_text(self, html: str) -> str:
+        """
+        Convert HTML content to plain text.
+
+        Args:
+            html (str): The HTML content to convert.
+
+        Returns:
+            str: The plain text content.
+        """
+        parser = html2text.HTML2Text()
+        parser.body_width = 0
+        parser.ignore_emphasis = True
+        parser.ignore_images = True
+        parser.ignore_links = True
+
+        description = parser.handle(html)
+        description = self.SPACE_RE.sub(" ", description)
+        description = self.LEADING_SPACE_RE.sub("", description)
+        description = self.LEADING_HASH_GT_RE.sub("", description)
+        description = self.BACKSLASH_DASH_RE.sub("-", description)
+        description = self.BACKSLASH_PLUS_RE.sub("+", description)
+        description = self.DASHES_UNDERSCORES_RE.sub("", description)
+        description = self.SINGLE_NON_SPACE_RE.sub("", description)
+        description = self.NEWLINE_SPACE_RE.sub("\n\n", description)
+        description = self.ORDERED_LIST_RE.sub(r"\1.", description)
+        description = description.replace("\ufeff", "")
+        description = description.strip()
+
+        return description
 
     @abstractmethod
     def get_job_description(self, url: str) -> str:

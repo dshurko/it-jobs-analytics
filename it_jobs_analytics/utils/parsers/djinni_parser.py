@@ -1,4 +1,3 @@
-import re
 from datetime import date, datetime
 from typing import Dict, List
 
@@ -72,11 +71,11 @@ class DjinniParser(BaseParser):
 
         for li in li_tags:
             header = li.find("header")
-            company = header.find("a", class_="mr-2").text.strip()
+            company = header.find("a", class_="mr-2").text.strip('\n "«»')
             dt_str = li.find("span", class_="mr-2 nobr")["title"]
             published_at = datetime.strptime(dt_str, "%H:%M %d.%m.%Y").date()
             a_tag = li.find("a", class_="h3 job-list-item__link")
-            title = a_tag.text.strip()
+            title = a_tag.text.strip('\n "«»')
             url = self.JOBS_URL + a_tag["href"].lstrip("/jobs")
 
             jobs.append(
@@ -156,15 +155,9 @@ class DjinniParser(BaseParser):
                 response.raise_for_status()
 
                 soup = BeautifulSoup(response.text, "html.parser")
-                div_tags = soup.find_all("div", class_="mb-4")[:2]
+                div_tags = soup.find_all("div", class_="mb-4")[:-1]
 
-                for div in div_tags:
-                    for br in div.find_all("br"):
-                        br.replace_with("\n")
-
-                description = "\n".join([div.text.strip() for div in div_tags])
-                description = re.sub(r"[ \t]+", " ", description)
-                description = re.sub(r"( *\n *)+", "\n", description)
+                description = self.convert_html_to_text(str(div_tags))
 
                 return description
 

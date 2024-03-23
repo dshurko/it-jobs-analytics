@@ -1,4 +1,3 @@
-import re
 from datetime import date, datetime
 from typing import Dict, List
 
@@ -65,9 +64,9 @@ class DouParser(BaseParser):
 
         for li in li_tags:
             a_tag = li.find("a", class_="vt")
-            title = a_tag.text.strip()
+            title = a_tag.text.strip('\n "«»')
             url = a_tag["href"].rstrip("?from=list_hot")
-            company = li.find("a", class_="company").text.strip()
+            company = li.find("a", class_="company").text.strip('\n "«»')
             date_str = li.find("div", class_="date").text.strip()
             published_at = datetime.strptime(date_str, "%d %B %Y").date()
 
@@ -177,14 +176,21 @@ class DouParser(BaseParser):
 
         try:
             with requests.Session() as session:
+                # set language to English
+                session.get(self.SET_LANG_URL, headers=headers)
+
                 response = session.get(url, headers=headers)
+                response.raise_for_status()
 
                 soup = BeautifulSoup(response.text, "html.parser")
-                div_tag = soup.find("div", class_="text b-typo vacancy-section")
+                div_tag = soup.find("div", class_="l-vacancy")
 
-                description = div_tag.get_text(separator="\n").strip()
-                description = re.sub(r"[ \t]+", " ", description)
-                description = re.sub(r"( *\n *)+", "\n", description)
+                div_tag.find("h1", class_="g-h2").extract()
+                div_tag.find("div", class_="sh-info").extract()
+                div_tag.find("div", class_="likely").extract()
+                div_tag.find("div", class_="reply").extract()
+
+                description = self.convert_html_to_text(str(div_tag))
 
                 return description
 
