@@ -2,8 +2,9 @@ from datetime import date, datetime
 from typing import Dict, List
 
 import requests
-from base_parser import BaseParser
 from bs4 import BeautifulSoup
+
+from .base_parser import BaseParser
 
 
 class DouParser(BaseParser):
