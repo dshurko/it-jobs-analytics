@@ -2,9 +2,8 @@ from datetime import date, datetime
 from typing import Dict, List
 
 import requests
+from base_parser import BaseParser
 from bs4 import BeautifulSoup
-
-from .base_parser import BaseParser
 
 
 class DouParser(BaseParser):
@@ -175,26 +174,21 @@ class DouParser(BaseParser):
         """
         headers = {"User-Agent": self.USER_AGENT, "Referer": url}
 
-        try:
-            with requests.Session() as session:
-                # set language to English
-                session.get(self.SET_LANG_URL, headers=headers)
+        with requests.Session() as session:
+            # set language to English
+            session.get(self.SET_LANG_URL, headers=headers)
 
-                response = session.get(url, headers=headers)
-                response.raise_for_status()
+            response = session.get(url, headers=headers)
+            response.raise_for_status()
 
-                soup = BeautifulSoup(response.text, "html.parser")
-                div_tag = soup.find("div", class_="l-vacancy")
+            soup = BeautifulSoup(response.text, "html.parser")
+            div_tag = soup.find("div", class_="l-vacancy")
 
-                div_tag.find("h1", class_="g-h2").extract()
-                div_tag.find("div", class_="sh-info").extract()
-                div_tag.find("div", class_="likely").extract()
-                div_tag.find("div", class_="reply").extract()
+            div_tag.find("h1", class_="g-h2").extract()
+            div_tag.find("div", class_="sh-info").extract()
+            div_tag.find("div", class_="likely").extract()
+            div_tag.find("div", class_="reply").extract()
 
-                description = self.convert_html_to_text(str(div_tag))
+            description = self.convert_html_to_text(str(div_tag))
 
-                return description
-
-        except requests.RequestException as e:
-            print(f"Request failed: {e}")
-            return ""
+            return description
