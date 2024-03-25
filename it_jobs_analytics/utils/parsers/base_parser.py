@@ -2,6 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from concurrent import futures
 from datetime import date
+from threading import Lock
 from typing import Dict, List
 
 import html2text
@@ -116,6 +117,7 @@ class BaseParser(ABC):
             List[Dict]: A list of job dictionaries, where each dictionary represents a job.
         """
         jobs = []
+        jobs_lock = Lock()
 
         for category in self.CATEGORY_URL_MAP.keys():
             jobs.extend(self.get_jobs_by_category(category, start_date, end_date))
@@ -133,7 +135,7 @@ class BaseParser(ABC):
                 while retries > 0:
                     try:
                         job["description"] = future.result()
-                        break  # if successful, break the retry loop
+                        break
                     except Exception as e:
                         print(
                             f"An exception occurred while fetching job description: {e}"
@@ -147,8 +149,7 @@ class BaseParser(ABC):
                             print(
                                 f"Failed to fetch job description after {self.MAX_RETRIES} attempts"
                             )
-                            jobs.remove(
-                                job
-                            )  # remove job if description couldn't be fetched
+                            with jobs_lock:
+                                jobs.remove(job)
 
         return jobs
