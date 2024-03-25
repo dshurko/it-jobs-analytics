@@ -2,9 +2,8 @@ from datetime import date, datetime
 from typing import Dict, List
 
 import requests
+from base_parser import BaseParser
 from bs4 import BeautifulSoup
-
-from .base_parser import BaseParser
 
 
 class DjinniParser(BaseParser):
@@ -54,43 +53,53 @@ class DjinniParser(BaseParser):
             List[Dict]: A list of job listings as dictionaries.
         """
         category_url = f"{self.JOBS_URL}?primary_keyword={self.CATEGORY_URL_MAP[category]}&page={page}"
+        retries = self.MAX_RETRIES
 
-        try:
-            response = requests.get(category_url)
-            response.raise_for_status()
-        except requests.RequestException as e:
-            print(f"Request failed: {e}")
-            return []
+        while retries > 0:
+            try:
+                response = requests.get(category_url)
+                response.raise_for_status()
 
-        if response.url == self.JOBS_URL:
-            return []
+                if response.url == self.JOBS_URL:
+                    return []
 
-        soup = BeautifulSoup(response.text, "html.parser")
-        li_tags = soup.find_all("li", class_="list-jobs__item job-list__item")
+                soup = BeautifulSoup(response.text, "html.parser")
+                li_tags = soup.find_all("li", class_="list-jobs__item job-list__item")
 
-        jobs = []
+                jobs = []
 
-        for li in li_tags:
-            header = li.find("header")
-            company = header.find("a", class_="mr-2").text.strip('\n "«»')
-            dt_str = li.find("span", class_="mr-2 nobr")["title"]
-            published_at = datetime.strptime(dt_str, "%H:%M %d.%m.%Y").date()
-            a_tag = li.find("a", class_="h3 job-list-item__link")
-            title = a_tag.text.strip('\n "«»')
-            url = self.JOBS_URL + a_tag["href"].lstrip("/jobs")
+                for li in li_tags:
+                    header = li.find("header")
+                    company = header.find("a", class_="mr-2").text.strip('\n "«»')
+                    dt_str = li.find("span", class_="mr-2 nobr")["title"]
+                    published_at = datetime.strptime(dt_str, "%H:%M %d.%m.%Y").date()
+                    a_tag = li.find("a", class_="h3 job-list-item__link")
+                    title = a_tag.text.strip('\n "«»')
+                    url = self.JOBS_URL + a_tag["href"].lstrip("/jobs")
 
-            jobs.append(
-                {
-                    "category": category,
-                    "company": company,
-                    "published_at": published_at,
-                    "source": "djinni",
-                    "title": title,
-                    "url": url,
-                }
-            )
+                    jobs.append(
+                        {
+                            "category": category,
+                            "company": company,
+                            "published_at": published_at,
+                            "source": "djinni",
+                            "title": title,
+                            "url": url,
+                        }
+                    )
 
-        return jobs
+                return jobs
+
+            except requests.RequestException as e:
+                print(f"Request failed: {e}")
+                retries -= 1
+                if retries > 0:
+                    print(f"Retrying... ({self.MAX_RETRIES - retries} attempts left)")
+                else:
+                    print(
+                        f"Failed to fetch jobs from page after {self.MAX_RETRIES} attempts"
+                    )
+                    return []
 
     def __get_earliest_date(self, jobs: List[Dict]) -> date:
         """
@@ -147,21 +156,16 @@ class DjinniParser(BaseParser):
         Returns:
             str: The description of the job listing.
         """
-        try:
-            with requests.Session() as session:
-                # set language to English
-                session.get(self.SET_LANG_URL)
+        with requests.Session() as session:
+            # set language to English
+            session.get(self.SET_LANG_URL)
 
-                response = session.get(url)
-                response.raise_for_status()
+            response = session.get(url)
+            response.raise_for_status()
 
-                soup = BeautifulSoup(response.text, "html.parser")
-                div_tags = soup.find_all("div", class_="mb-4")[:-1]
+            soup = BeautifulSoup(response.text, "html.parser")
+            div_tags = soup.find_all("div", class_="mb-4")[:-1]
 
-                description = self.convert_html_to_text(str(div_tags))
+            description = self.convert_html_to_text(str(div_tags))
 
-                return description
-
-        except requests.RequestException as e:
-            print(f"Request failed: {e}")
-            return ""
+            return description
