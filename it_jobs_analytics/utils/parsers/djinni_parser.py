@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Dict, List
 
 import requests
-from base_parser import BaseParser
+from .base_parser import BaseParser
 from bs4 import BeautifulSoup
 
 
