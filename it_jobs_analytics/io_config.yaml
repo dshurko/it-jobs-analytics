@@ -1,5 +1,2 @@
 version: 0.1.1
 default:
-  # Google
-  GOOGLE_SERVICE_ACC_KEY_FILEPATH: "{{ env_var('GOOGLE_SERVICE_ACC_KEY_FILEPATH') }}"
-  GOOGLE_LOCATION: EU # Optional
