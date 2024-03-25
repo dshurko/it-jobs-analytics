@@ -1,9 +1,7 @@
 import os
 from datetime import date, datetime
 
-from mage_ai.io.config import ConfigFileLoader
-from mage_ai.io.google_cloud_storage import GoogleCloudStorage
-from mage_ai.settings.repo import get_repo_path
+from google.cloud import storage
 
 if "data_loader" not in globals():
     from mage_ai.data_preparation.decorators import data_loader
@@ -13,25 +11,22 @@ if "test" not in globals():
 
 @data_loader
 def load_from_google_cloud_storage(*args, **kwargs):
-    config_path = os.path.join(get_repo_path(), "io_config.yaml")
-    config_profile = "default"
-
     bucket_name = os.environ["GCS_BUCKET_NAME"]
-    job_website_name = kwargs["job_website_name"]
+    table_name = os.environ["TABLE_NAME"]
+    source = kwargs["source"]
 
-    client = GoogleCloudStorage.with_config(
-        ConfigFileLoader(config_path, config_profile)
-    ).client
+    storage_client = storage.Client()
 
-    bucket = client.get_bucket(bucket_name)
-    blobs = bucket.list_blobs(prefix=job_website_name)
+    bucket = storage_client.bucket(bucket_name)
+    blobs = bucket.list_blobs(prefix=f"{table_name}/source={source}")
 
     latest_date = date(1970, 1, 1)  # start of Unix time
     for blob in blobs:
         if blob.name.endswith(".parquet"):
-            _, year, month, day = blob.name.rstrip(".parquet").split("/")
-            date_ = datetime.strptime(f"{year}-{month}-{day}", "%Y-%m-%d").date()
-            latest_date = max(date_, latest_date)
+            date_str = blob.name.split("/")[-2].replace("published_at=", "")
+            blob_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+            latest_date = max(blob_date, latest_date)
 
     return latest_date
 

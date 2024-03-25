@@ -2,18 +2,52 @@ blocks:
 - all_upstream_blocks_executed: true
   color: null
   configuration: {}
-  downstream_blocks: []
+  downstream_blocks:
+  - load_djinni
   executor_config: null
   executor_type: local_python
   has_callback: false
   language: python
-  name: load_latest_partition_date_from_gcs
+  name: load_latest_partition_date
   retry_config: null
   status: executed
   timeout: null
   type: data_loader
   upstream_blocks: []
-  uuid: load_latest_partition_date_from_gcs
+  uuid: load_latest_partition_date
+- all_upstream_blocks_executed: true
+  color: null
+  configuration: {}
+  downstream_blocks:
+  - export_google_cloud_storage
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: load_djinni
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_loader
+  upstream_blocks:
+  - load_latest_partition_date
+  uuid: load_djinni
+- all_upstream_blocks_executed: false
+  color: null
+  configuration: {}
+  downstream_blocks: []
+  executor_config: null
+  executor_type: local_python
+  has_callback: false
+  language: python
+  name: export_google_cloud_storage
+  retry_config: null
+  status: updated
+  timeout: null
+  type: data_exporter
+  upstream_blocks:
+  - load_djinni
+  uuid: export_google_cloud_storage
 cache_block_output_in_memory: false
 callbacks: []
 concurrency_config: {}
@@ -37,6 +71,6 @@ tags: []
 type: python
 uuid: djinni_to_google_cloud_storage
 variables:
-  job_website_name: djinni
+  source: djinni
 variables_dir: /home/src/mage_data/it_jobs_analytics
 widgets: []
