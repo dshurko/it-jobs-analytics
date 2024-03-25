@@ -123,16 +123,16 @@ class DjinniParser(BaseParser):
 
         while True:
             jobs_from_page = self.__get_jobs_from_page(category, page)
-            if (
-                not jobs_from_page
-                or self.__get_earliest_date(jobs_from_page) < start_date
-            ):
-                for job in jobs_from_page:
-                    if start_date <= job["published_at"] <= end_date:
-                        jobs.append(job)
+            if not jobs_from_page:
                 break
 
-            jobs.extend(jobs_from_page)
+            for job in jobs_from_page:
+                if start_date <= job["published_at"] <= end_date:
+                    jobs.append(job)
+
+            if self.__get_earliest_date(jobs_from_page) < start_date:
+                break
+
             page += 1
 
         return jobs
