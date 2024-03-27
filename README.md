@@ -16,4 +16,4 @@ Work in progress
 
 Database Schema:
 
-![Database Schema](./docs/images/database-schema.png)
+![](./docs/images/database-schema.png)
