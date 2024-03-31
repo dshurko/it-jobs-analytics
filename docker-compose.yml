@@ -16,3 +16,14 @@ services:
     volumes:
       - .:/home/src/
     restart: on-failure:5
+  vectordb:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_USER=root
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_DB=vectordb
+    volumes:
+      - "./postgres_data:/var/lib/postgresql/data:rw"
+    ports:
+      - "5432:5432"
+  
